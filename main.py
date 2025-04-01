@@ -16,6 +16,11 @@ FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
+# Sound effects
+pygame.mixer.init()
+crash_sound = pygame.mixer.Sound('assets/sounds/crash.wav')
+refuel_sound = pygame.mixer.Sound('assets/sounds/refuel.wav')
+
 class Game:
     def __init__(self):
         # Set up display
@@ -44,9 +49,27 @@ class Game:
 
     def update(self):
         if not self.paused:
+            # Handle car input
+            keys = pygame.key.get_pressed()
+            self.car.handle_input(keys)
+
+            # Update game components
             self.car.update()
-            self.track.update()
-            self.ui.update()
+            self.car.check_collision(self.track)
+            self.ui.update(self.car)
+
+            # Check for gas station collision
+            station_index = self.track.check_gas_station_collision(self.car)
+            if station_index != -1:
+                self.car.refuel(50)
+                self.track.gas_stations.pop(station_index)
+                refuel_sound.play()
+
+            # Check game over conditions
+            if self.car.crashed or self.car.fuel <= 0:
+                if not self.car.crashed:
+                    self.car.crashed = True
+                crash_sound.play()
 
     def render(self):
         self.screen.fill(WHITE)
